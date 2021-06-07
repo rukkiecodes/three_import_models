@@ -1,6 +1,8 @@
 import './style.css'
 import * as THREE from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
+import { DRACOLoader } from "three/examples/jsm/loaders/DRACOLoader.js"
 import * as dat from 'dat.gui'
 
 /**
@@ -15,6 +17,23 @@ const canvas = document.querySelector('canvas.webgl')
 // Scene
 const scene = new THREE.Scene()
 
+//models
+const dracoLoader = new DRACOLoader()
+dracoLoader.setDecoderPath('/draco/')
+const gltfLoader = new GLTFLoader()
+
+gltfLoader.setDRACOLoader(dracoLoader)
+
+let mixer = null;
+
+gltfLoader.load("/models/Fox/glTF/Fox.gltf", (gltf) => {
+    mixer = new THREE.AnimationMixer(gltf.scene)
+    const action = mixer.clipAction(gltf.animations[2])
+    action.play()
+    gltf.scene.scale.set(0.025, 0.025, 0.025)
+    scene.add(gltf.scene);
+});
+
 /**
  * Floor
  */
@@ -27,7 +46,7 @@ const floor = new THREE.Mesh(
     })
 )
 floor.receiveShadow = true
-floor.rotation.x = - Math.PI * 0.5
+floor.rotation.x = -Math.PI * 0.5
 scene.add(floor)
 
 /**
@@ -40,10 +59,10 @@ const directionalLight = new THREE.DirectionalLight(0xffffff, 0.6)
 directionalLight.castShadow = true
 directionalLight.shadow.mapSize.set(1024, 1024)
 directionalLight.shadow.camera.far = 15
-directionalLight.shadow.camera.left = - 7
+directionalLight.shadow.camera.left = -7
 directionalLight.shadow.camera.top = 7
 directionalLight.shadow.camera.right = 7
-directionalLight.shadow.camera.bottom = - 7
+directionalLight.shadow.camera.bottom = -7
 directionalLight.position.set(5, 5, 5)
 scene.add(directionalLight)
 
@@ -55,8 +74,7 @@ const sizes = {
     height: window.innerHeight
 }
 
-window.addEventListener('resize', () =>
-{
+window.addEventListener('resize', () => {
     // Update sizes
     sizes.width = window.innerWidth
     sizes.height = window.innerHeight
@@ -100,11 +118,15 @@ renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
 const clock = new THREE.Clock()
 let previousTime = 0
 
-const tick = () =>
-{
+const tick = () => {
     const elapsedTime = clock.getElapsedTime()
     const deltaTime = elapsedTime - previousTime
     previousTime = elapsedTime
+
+    // Update  mixer
+    if (mixer !== null) {
+        mixer.update(deltaTime)
+    }
 
     // Update controls
     controls.update()
